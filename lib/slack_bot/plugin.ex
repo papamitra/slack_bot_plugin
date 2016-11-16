@@ -51,21 +51,7 @@ defmodule SlackBot.Plugin do
 
   def handle_info({:plugin_init, path, mod, app, team_state}, _state) do
 
-    compile_path = Mix.Project.in_project(app, path, [], fn _ ->
-      Mix.Tasks.Loadconfig.run([])
-      Mix.Tasks.Deps.Loadpaths.run([])
-      Mix.Project.compile_path
-    end)
-
-    Code.prepend_path(compile_path)
-
-    case Code.ensure_loaded(mod) do
-      {:module, mod} ->
-        Logger.debug "module load succeeded: #{mod}"
-      _ ->
-        Logger.warn "module load failed: #{mod}"
-        exit(:load_failed)
-    end
+    :ok = SlackBot.ElixirPluginLoader.load(path, mod, app)
 
     {:ok, pid, cmds} = apply(mod, :plugin_init, [team_state])
 
