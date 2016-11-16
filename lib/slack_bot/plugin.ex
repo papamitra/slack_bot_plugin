@@ -51,9 +51,13 @@ defmodule SlackBot.Plugin do
 
   def handle_info({:plugin_init, path, mod, app, team_state}, _state) do
 
-    Code.append_path(path <> "/_build/#{Mix.env}/lib/#{app}/ebin") # FIXME: code path
+    compile_path = Mix.Project.in_project(app, path, [], fn _ ->
+      Mix.Tasks.Loadconfig.run([])
+      Mix.Tasks.Deps.Loadpaths.run([])
+      Mix.Project.compile_path
+    end)
 
-    :ok = Application.load(app)
+    Code.prepend_path(compile_path)
 
     case Code.ensure_loaded(mod) do
       {:module, mod} ->
@@ -67,7 +71,7 @@ defmodule SlackBot.Plugin do
 
     send(SlackBot.PluginServer, {:register_plugin, self, cmds})
 
-    {:noreply, %{}}
+    {:noreply, %{mod: mod, pid: pid, cmds: cmds}}
   end
 
 end
